@@ -44,8 +44,15 @@ else
 fi
 
 echo "3. 复制项目文件..."
+# 复制 luasrc
 cp -r luasrc "$BUILD_DIR/pkg/"
-cp -r root/* "$BUILD_DIR/pkg/"
+
+# 复制 root 目录下的所有内容（包括隐藏文件）
+for item in root/* root/.[^.]*; do
+    if [ -e "$item" ]; then
+        cp -r "$item" "$BUILD_DIR/pkg/"
+    fi
+done
 
 echo "4. 创建 CONTROL 目录..."
 mkdir -p "$BUILD_DIR/pkg/CONTROL"
@@ -104,10 +111,21 @@ EOF
 chmod 755 "$BUILD_DIR/pkg/CONTROL/postrm"
 
 echo "5. 设置文件权限..."
-chmod 755 "$BUILD_DIR/pkg/etc/init.d/v2ray"
-chmod 755 "$BUILD_DIR/pkg/etc/uci-defaults/40_luci-v2ray"
+if [ -f "$BUILD_DIR/pkg/etc/init.d/v2ray" ]; then
+    chmod 755 "$BUILD_DIR/pkg/etc/init.d/v2ray"
+fi
+if [ -f "$BUILD_DIR/pkg/etc/uci-defaults/40_luci-v2ray" ]; then
+    chmod 755 "$BUILD_DIR/pkg/etc/uci-defaults/40_luci-v2ray"
+fi
 
-echo "6. 使用 ipkg-build 构建 IPK 包..."
+echo "6. 验证目录结构..."
+ls -la "$BUILD_DIR/pkg/"
+if [ ! -d "$BUILD_DIR/pkg/CONTROL" ]; then
+    echo "错误: CONTROL 目录未创建"
+    exit 1
+fi
+
+echo "7. 使用 ipkg-build 构建 IPK 包..."
 "$BUILD_DIR/ipkg-build/ipkg-build" -o 0 -g 0 "$BUILD_DIR/pkg" "$ARTIFACTS_DIR"
 
 echo ""
