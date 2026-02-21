@@ -1,0 +1,36 @@
+name: Fast Build luci-app-v2ray (ipkg-build)
+
+on:
+  push:
+    paths:
+      - 'luasrc/**'
+      - 'root/**'
+      - 'Makefile'
+      - 'build-ipkg.sh'
+  pull_request:
+    paths:
+      - 'luasrc/**'
+      - 'root/**'
+      - 'Makefile'
+      - 'build-ipkg.sh'
+  workflow_dispatch:
+
+jobs:
+  fast-build:
+    name: Fast Build with ipkg-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Make build script executable
+        run: chmod +x build-ipkg.sh
+
+      - name: Build IPK package with ipkg-build
+        run: ./build-ipkg.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-app-v2ray-ipkg-build
+          path: artifacts/*.ipk
