@@ -1,0 +1,28 @@
+name: Build luci-app-v2ray (Fast)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Fast IPK Package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Build Script
+        run: |
+          chmod +x build-fast.sh
+          bash build-fast.sh
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-app-v2ray-fast
+          path: output/*.ipk
