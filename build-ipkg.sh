@@ -45,7 +45,7 @@ fi
 
 echo "3. 复制项目文件..."
 cp -r luasrc "$BUILD_DIR/pkg/"
-cp -r root "$BUILD_DIR/pkg/"
+cp -r root/* "$BUILD_DIR/pkg/"
 
 echo "4. 创建 CONTROL 目录..."
 mkdir -p "$BUILD_DIR/pkg/CONTROL"
