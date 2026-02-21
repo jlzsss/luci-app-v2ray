@@ -5,8 +5,6 @@
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
 usage() {
     echo "Usage: $0 [-o <owner>] [-g <group>] <pkg_dir> <dest_dir>"
     echo "  -o <owner>  Set owner for files in package"
@@ -31,8 +29,9 @@ if [ $# -ne 2 ]; then
     usage
 fi
 
-PKG_DIR="$1"
-DEST_DIR="$2"
+# 转换为绝对路径
+PKG_DIR="$(cd "$1" && pwd)"
+DEST_DIR="$(cd "$2" && pwd)"
 
 if [ ! -d "$PKG_DIR" ]; then
     echo "Error: Package directory $PKG_DIR does not exist"
@@ -63,6 +62,8 @@ PKG_NAME="${PACKAGE}_${VERSION}_${ARCH}.ipk"
 TMP_DIR=$(mktemp -d)
 
 echo "Building $PKG_NAME..."
+echo "Package dir: $PKG_DIR"
+echo "Control dir: $PKG_DIR/CONTROL"
 
 # 创建临时目录
 mkdir -p "$TMP_DIR"
@@ -73,6 +74,11 @@ find . -type f -o -type l | grep -v "^./CONTROL" | sort > "$TMP_DIR/files.list"
 tar -czf "$TMP_DIR/data.tar.gz" -T "$TMP_DIR/files.list" --owner="$OWNER" --group="$GROUP" 2>/dev/null || tar -czf "$TMP_DIR/data.tar.gz" -T "$TMP_DIR/files.list"
 
 # 步骤2: 创建 control.tar.gz（只包含 CONTROL 目录）
+if [ ! -d "$PKG_DIR/CONTROL" ]; then
+    echo "Error: CONTROL directory not found at $PKG_DIR/CONTROL"
+    exit 1
+fi
+
 cd "$PKG_DIR/CONTROL"
 find . -type f | sort > "$TMP_DIR/control.files"
 tar -czf "$TMP_DIR/control.tar.gz" -T "$TMP_DIR/control.files" --owner="$OWNER" --group="$GROUP" 2>/dev/null || tar -czf "$TMP_DIR/control.tar.gz" -T "$TMP_DIR/control.files"
