@@ -2,6 +2,7 @@
 -- Licensed to the public under the MIT License.
 
 local dsp = require "luci.dispatcher"
+local http = require "luci.http"
 
 local m, s, o
 
@@ -12,7 +13,7 @@ m = Map("v2ray", "%s - %s" % { translate("V2Ray"), translate("Edit Policy Level"
 m.redirect = dsp.build_url("admin/services/v2ray/policy")
 
 if m.uci:get("v2ray", sid) ~= "policy_level" then
-	luci.http.redirect(m.redirect)
+	http.redirect(m.redirect)
 	return
 end
 

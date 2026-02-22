@@ -2,6 +2,7 @@
 -- Licensed to the public under the MIT License.
 
 local dsp = require "luci.dispatcher"
+local http = require "luci.http"
 local uci = require "luci.model.uci".cursor()
 local util = require "luci.util"
 
@@ -46,7 +47,7 @@ s2.create = function (...)
 	local sid = TypedSection.create(...)
 	if sid then
 		m.uci:save("v2ray")
-		luci.http.redirect(s2.extedit % sid)
+		http.redirect(s2.extedit % sid)
 		return
 	end
 end

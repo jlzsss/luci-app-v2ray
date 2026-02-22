@@ -2,6 +2,7 @@
 -- Licensed to the public under the MIT License.
 
 local dsp = require "luci.dispatcher"
+local http = require "luci.http"
 local nixio = require "nixio"
 local util = require "luci.util"
 
@@ -14,7 +15,7 @@ m = Map("v2ray", "%s - %s" % { translate("V2Ray"), translate("Edit Inbound") },
 m.redirect = dsp.build_url("admin/services/v2ray/inbounds")
 
 if m.uci:get("v2ray", sid) ~= "inbound" then
-	luci.http.redirect(m.redirect)
+	http.redirect(m.redirect)
 	return
 end
 
@@ -235,9 +236,6 @@ o.datatype = "uinteger"
 o = s:option(Value, "s_vless_flow", "%s - %s" % { "VLESS", translate("Flow") })
 o:depends("protocol", "vless")
 o:value("", translate("None"))
-o:value("xtls-rprx-direct", "xtls-rprx-direct")
-o:value("xtls-rprx-splice", "xtls-rprx-splice")
-o:value("xtls-rprx-vision", "xtls-rprx-vision")
 
 -- Settings - Trojan
 o = s:option(Value, "s_trojan_password", "%s - %s" % { "Trojan", translate("Password") })
@@ -300,8 +298,6 @@ o = s:option(ListValue, "ss_security", "%s - %s" % { translate("Stream settings"
 o:value("")
 o:value("none", translate("None"))
 o:value("tls", "TLS")
-o:value("xtls", "XTLS")
-o:value("reality", "Reality")
 
 -- Stream Settings - TLS
 o = s:option(Value, "ss_tls_server_name", "%s - %s" % { "TLS", translate("Server name") })
@@ -333,44 +329,6 @@ o:depends("ss_security", "tls")
 
 o = s:option(Value, "ss_tls_key_file", "%s - %s" % { "TLS", translate("Key file") })
 o:depends("ss_security", "tls")
-
--- Stream Settings - XTLS
-o = s:option(Value, "ss_xtls_server_name", "%s - %s" % { "XTLS", translate("Server name") })
-o:depends("ss_security", "xtls")
-o.datatype = "host"
-
-o = s:option(Flag, "ss_xtls_allow_insecure", "%s - %s" % { "XTLS", translate("Allow insecure") })
-o:depends("ss_security", "xtls")
-
-o = s:option(ListValue, "ss_xtls_cert_usage", "%s - %s" % { "XTLS", translate("Certificate usage") })
-o:depends("ss_security", "xtls")
-o:value("")
-o:value("encipherment")
-o:value("verify")
-o:value("issue")
-
-o = s:option(Value, "ss_xtls_cert_file", "%s - %s" % { "XTLS", translate("Certificate file") })
-o:depends("ss_security", "xtls")
-
-o = s:option(Value, "ss_xtls_key_file", "%s - %s" % { "XTLS", translate("Key file") })
-o:depends("ss_security", "xtls")
-
--- Stream Settings - Reality
-o = s:option(Value, "ss_reality_private_key", "%s - %s" % { "Reality", translate("Private key") })
-o:depends("ss_security", "reality")
-o.password = true
-
-o = s:option(Value, "ss_reality_public_key", "%s - %s" % { "Reality", translate("Public key") })
-o:depends("ss_security", "reality")
-
-o = s:option(Value, "ss_reality_server_name", "%s - %s" % { "Reality", translate("Server name") })
-o:depends("ss_security", "reality")
-
-o = s:option(Value, "ss_reality_short_id", "%s - %s" % { "Reality", translate("Short ID") })
-o:depends("ss_security", "reality")
-
-o = s:option(Value, "ss_reality_spider_x", "%s - %s" % { "Reality", translate("Spider X") })
-o:depends("ss_security", "reality")
 
 -- Stream Settings - TCP
 o = s:option(ListValue, "ss_tcp_header_type", "%s - %s" % { "TCP", translate("Header type") })

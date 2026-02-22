@@ -306,18 +306,8 @@ inbound_section_validate() {
 		's_wireguard_peer_endpoint:list(string)' \
 		's_wireguard_persistent_keepalive:uinteger' \
 		'ss_network:or("tcp", "kcp", "ws", "http", "domainsocket", "quic")' \
-		'ss_security:or("none", "tls", "xtls", "reality")' \
+		'ss_security:or("none", "tls")' \
 		'ss_tls_server_name:host' \
-		'ss_xtls_server_name:host' \
-		'ss_xtls_allow_insecure:bool:0' \
-		'ss_xtls_cert_usage:or("encipherment", "verify", "issue")' \
-		'ss_xtls_cert_file:string' \
-		'ss_xtls_key_file:string' \
-		'ss_reality_private_key:string' \
-		'ss_reality_public_key:string' \
-		'ss_reality_server_name:host' \
-		'ss_reality_short_id:string' \
-		'ss_reality_spider_x:string' \
 		'ss_tls_alpn:string' \
 		'ss_tls_allow_insecure:bool:0' \
 		'ss_tls_allow_insecure_ciphers:bool:0' \
@@ -412,18 +402,8 @@ outbound_section_validate() {
 		's_wireguard_persistent_keepalive:uinteger' \
 		's_wireguard_mtu:uinteger' \
 		'ss_network:or("tcp", "kcp", "ws", "http", "domainsocket", "quic")' \
-		'ss_security:or("none", "tls", "xtls", "reality")' \
+		'ss_security:or("none", "tls")' \
 		'ss_tls_server_name:host' \
-		'ss_xtls_server_name:host' \
-		'ss_xtls_allow_insecure:bool:0' \
-		'ss_xtls_cert_usage:or("encipherment", "verify", "issue")' \
-		'ss_xtls_cert_file:string' \
-		'ss_xtls_key_file:string' \
-		'ss_reality_private_key:string' \
-		'ss_reality_public_key:string' \
-		'ss_reality_server_name:host' \
-		'ss_reality_short_id:string' \
-		'ss_reality_spider_x:string' \
 		'ss_tls_alpn:string' \
 		'ss_tls_allow_insecure:bool:0' \
 		'ss_tls_allow_insecure_ciphers:bool:0' \
@@ -1619,42 +1599,7 @@ add_inbound_setting() {
 	test -n "$ss_security" && \
 		json_add_string "security" "$ss_security"
 
-	if [ "x$ss_security" = "xtls" ] ; then
-		json_add_object "xtlsSettings"
-
-		test -n "$ss_xtls_server_name" && \
-			json_add_string "serverName" "$ss_xtls_server_name"
-
-		json_add_boolean "allowInsecure" "$ss_xtls_allow_insecure"
-
-		json_add_array "certificates"
-		if [ -n "$ss_xtls_cert_file" ] ; then
-			json_add_object ""
-			json_add_string "certificateFile" "$ss_xtls_cert_file"
-			json_add_string "keyFile" "$ss_xtls_key_file"
-			test -n "$ss_xtls_cert_usage" && \
-				json_add_string "usage" "$ss_xtls_cert_usage"
-			json_close_object
-		fi
-		json_close_array # certificates
-
-		json_close_object # xtlsSettings
-	elif [ "x$ss_security" = "reality" ] ; then
-		json_add_object "realitySettings"
-
-		test -n "$ss_reality_private_key" && \
-			json_add_string "privateKey" "$ss_reality_private_key"
-		test -n "$ss_reality_public_key" && \
-			json_add_string "publicKey" "$ss_reality_public_key"
-		test -n "$ss_reality_server_name" && \
-			json_add_string "serverName" "$ss_reality_server_name"
-		test -n "$ss_reality_short_id" && \
-			json_add_string "shortId" "$ss_reality_short_id"
-		test -n "$ss_reality_spider_x" && \
-			json_add_string "spiderX" "$ss_reality_spider_x"
-
-		json_close_object # realitySettings
-	elif [ "x$ss_security" = "tls" ] ; then
+	if [ "x$ss_security" = "tls" ] ; then
 		json_add_object "tlsSettings"
 
 		test -n "$ss_tls_server_name" && \
@@ -2168,42 +2113,7 @@ add_outbound_setting() {
 	test -n "$ss_security" && \
 		json_add_string "security" "$ss_security"
 
-	if [ "x$ss_security" = "xtls" ] ; then
-		json_add_object "xtlsSettings"
-
-		test -n "$ss_xtls_server_name" && \
-			json_add_string "serverName" "$ss_xtls_server_name"
-
-		json_add_boolean "allowInsecure" "$ss_xtls_allow_insecure"
-
-		json_add_array "certificates"
-		if [ -n "$ss_xtls_cert_file" ] ; then
-			json_add_object ""
-			json_add_string "certificateFile" "$ss_xtls_cert_file"
-			json_add_string "keyFile" "$ss_xtls_key_file"
-			test -n "$ss_xtls_cert_usage" && \
-				json_add_string "usage" "$ss_xtls_cert_usage"
-			json_close_object
-		fi
-		json_close_array # certificates
-
-		json_close_object # xtlsSettings
-	elif [ "x$ss_security" = "reality" ] ; then
-		json_add_object "realitySettings"
-
-		test -n "$ss_reality_private_key" && \
-			json_add_string "privateKey" "$ss_reality_private_key"
-		test -n "$ss_reality_public_key" && \
-			json_add_string "publicKey" "$ss_reality_public_key"
-		test -n "$ss_reality_server_name" && \
-			json_add_string "serverName" "$ss_reality_server_name"
-		test -n "$ss_reality_short_id" && \
-			json_add_string "shortId" "$ss_reality_short_id"
-		test -n "$ss_reality_spider_x" && \
-			json_add_string "spiderX" "$ss_reality_spider_x"
-
-		json_close_object # realitySettings
-	elif [ "x$ss_security" = "tls" ] ; then
+	if [ "x$ss_security" = "tls" ] ; then
 		json_add_object "tlsSettings"
 
 		test -n "$ss_tls_server_name" && \

@@ -278,36 +278,10 @@ function import_vless_outbound(section_name, obj)
 	
 	if security == "tls" then
 		uci:set("v2ray", section_name, "ss_security", "tls")
-	elseif security == "reality" then
-		uci:set("v2ray", section_name, "ss_security", "reality")
-	elseif security == "xtls" then
-		uci:set("v2ray", section_name, "ss_security", "xtls")
 	end
 	
 	if obj["sni"] then
-		if security == "tls" then
-			uci:set("v2ray", section_name, "ss_tls_server_name", obj["sni"])
-		elseif security == "reality" then
-			uci:set("v2ray", section_name, "ss_reality_server_name", obj["sni"])
-		elseif security == "xtls" then
-			uci:set("v2ray", section_name, "ss_xtls_server_name", obj["sni"])
-		end
-	end
-	
-	if obj["flow"] then
-		uci:set("v2ray", section_name, "s_vless_flow", obj["flow"])
-	end
-	
-	if obj["publicKey"] then
-		uci:set("v2ray", section_name, "ss_reality_public_key", obj["publicKey"])
-	end
-	
-	if obj["shortId"] then
-		uci:set("v2ray", section_name, "ss_reality_short_id", obj["shortId"])
-	end
-	
-	if obj["spiderX"] then
-		uci:set("v2ray", section_name, "ss_reality_spider_x", obj["spiderX"])
+		uci:set("v2ray", section_name, "ss_tls_server_name", obj["sni"])
 	end
 
 	local network = obj["net"] or "tcp"
@@ -369,12 +343,8 @@ function apply_network_settings(section_name, network, header_type, path, hosts,
 				uci:set_list("v2ray", section_name, "ss_tcp_header_request_headers", host_header)
 			end
 		end
-		if (security == "tls" or security == "reality") and next(hosts) then
-			if security == "tls" then
-				uci:set("v2ray", section_name, "ss_tls_server_name", hosts[1])
-			elseif security == "reality" then
-				uci:set("v2ray", section_name, "ss_reality_server_name", hosts[1])
-			end
+		if security == "tls" and next(hosts) then
+			uci:set("v2ray", section_name, "ss_tls_server_name", hosts[1])
 		end
 	elseif network == "kcp" or network == "mkcp" then
 		uci:set("v2ray", section_name, "ss_network", "kcp")
@@ -390,12 +360,8 @@ function apply_network_settings(section_name, network, header_type, path, hosts,
 			local host_header = string.format("Host=%s", hosts[1])
 			uci:set_list("v2ray", section_name, "ss_websocket_headers", host_header)
 		end
-		if (security == "tls" or security == "reality") and next(hosts) then
-			if security == "tls" then
-				uci:set("v2ray", section_name, "ss_tls_server_name", hosts[1])
-			elseif security == "reality" then
-				uci:set("v2ray", section_name, "ss_reality_server_name", hosts[1])
-			end
+		if security == "tls" and next(hosts) then
+			uci:set("v2ray", section_name, "ss_tls_server_name", hosts[1])
 		end
 	elseif network == "http" or network == "h2" then
 		uci:set("v2ray", section_name, "ss_network", "http")
