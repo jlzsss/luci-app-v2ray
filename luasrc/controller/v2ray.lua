@@ -102,7 +102,7 @@ function action_version()
 			fs.chmod(file, 755)
 		end
 
-		local version = util.trim(sys.exec("%s --version 2>/dev/null | head -n1" % file))
+		local version = util.trim(sys.exec("%s version 2>/dev/null | head -n1" % file))
 
 		if version ~= "" then
 			info = {
