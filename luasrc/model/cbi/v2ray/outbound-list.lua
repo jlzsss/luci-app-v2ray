@@ -2,6 +2,7 @@
 -- Licensed to the public under the MIT License.
 
 local dsp = require "luci.dispatcher"
+local http = require "luci.http"
 local util = require "luci.util"
 
 local m, s, o
@@ -18,6 +19,8 @@ s.extedit = dsp.build_url("admin/services/v2ray/outbounds/%s")
 s.create = function (...)
 	local sid = TypedSection.create(...)
 	if sid then
+		m.uci:set("v2ray", sid, "alias", "Outbound_" .. sid)
+		
 		local outbounds = m.uci:get("v2ray", "main", "outbounds")
 		if outbounds then
 			if type(outbounds) == "table" then
@@ -34,7 +37,7 @@ s.create = function (...)
 			m.uci:set("v2ray", "main", "outbounds", { sid })
 		end
 		m.uci:save("v2ray")
-		luci.http.redirect(s.extedit % sid)
+		http.redirect(s.extedit % sid)
 		return
 	end
 end
