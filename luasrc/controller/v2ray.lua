@@ -170,7 +170,6 @@ function import_outbound()
 
 	for i=1, #objs do
 		local obj = objs[i]
-
 		if not obj or not next(obj) then
 			http.prepare_content("application/json")
 			http.write_json({
@@ -179,17 +178,10 @@ function import_outbound()
 			})
 			return
 		end
-
-		local ver = obj["v"]
-		if ver ~= "2" then
-			http.prepare_content("application/json")
-			http.write_json({
-				success = false,
-				message = i18n.translate("Unsupported link version")
-			})
-			return
-		end
 	end
+
+	local outbounds = uci:get_list("v2ray", "main", "outbounds") or {}
+	local added_sections = {}
 
 	for i=1, #objs do
 		local obj = objs[i]
@@ -206,78 +198,38 @@ function import_outbound()
 
 		local address = obj["add"] or "0.0.0.0"
 		local port = obj["port"] or "0"
-		local tls = obj["tls"] or ""
-
 		local alias = obj["ps"] or string.format("%s:%s", address, port)
+		local protocol = obj["protocol"] or "vmess"
 
 		uci:set("v2ray", section_name, "alias", alias)
-		uci:set("v2ray", section_name, "protocol", "vmess")
-		uci:set("v2ray", section_name, "s_vmess_address", address)
-		uci:set("v2ray", section_name, "s_vmess_port", port)
-		uci:set("v2ray", section_name, "s_vmess_user_id", obj["id"] or "")
-		uci:set("v2ray", section_name, "s_vmess_user_alter_id", obj["aid"] or "")
-		uci:set("v2ray", section_name, "ss_security", tls)
+		uci:set("v2ray", section_name, "protocol", protocol)
 
-		local network = obj["net"] or ""
-		local header_type = obj["type"] or ""
-		local path = obj["path"] or ""
-
-		local hosts = { }
-
-		for h in string.gmatch(obj["host"] or "", "([^,%s]+),?") do
-			hosts[#hosts+1] = h
+		if protocol == "vmess" then
+			import_vmess_outbound(section_name, obj)
+		elseif protocol == "vless" then
+			import_vless_outbound(section_name, obj)
+		elseif protocol == "trojan" then
+			import_trojan_outbound(section_name, obj)
+		elseif protocol == "shadowsocks" then
+			import_shadowsocks_outbound(section_name, obj)
 		end
 
-		if network == "tcp" then
-			uci:set("v2ray", section_name, "ss_network", "tcp")
+		table.insert(added_sections, section_name)
+	end
 
-			uci:set("v2ray", section_name, "ss_tcp_header_type", header_type)
-
-			if header_type == "http" and next(hosts) then
-				local host_header = string.format("Host=%s", hosts[1])
-				uci:set_list("v2ray", section_name, "ss_tcp_header_request_headers", host_header)
-
-				if tls == "tls" then
-					uci:set("v2ray", section_name, "ss_tls_server_name", hosts[1])
-				end
+	for _, sid in ipairs(added_sections) do
+		local found = false
+		for _, v in ipairs(outbounds) do
+			if v == sid then
+				found = true
+				break
 			end
-		elseif network == "kcp" or network == "mkcp" then
-			uci:set("v2ray", section_name, "ss_network", "kcp")
-			uci:set("v2ray", section_name, "ss_kcp_header_type", header_type)
-		elseif network == "ws" then
-			uci:set("v2ray", section_name, "ss_network", "ws")
-			uci:set("v2ray", section_name, "ss_websocket_path", path)
-
-			if next(hosts) then
-				local host_header = string.format("Host=%s", hosts[1])
-				uci:set_list("v2ray", section_name, "ss_websocket_headers", host_header)
-
-				if tls == "tls" then
-					uci:set("v2ray", section_name, "ss_tls_server_name", hosts[1])
-				end
-			end
-		elseif network == "http" or network == "h2" then
-			uci:set("v2ray", section_name, "ss_network", "http")
-			uci:set("v2ray", section_name, "ss_http_path", path)
-
-			if next(hosts) then
-				uci:set_list("v2ray", section_name, "ss_http_host", hosts)
-				uci:set("v2ray", section_name, "ss_tls_server_name", hosts[1])
-			end
-		elseif network == "quic" then
-			uci:set("v2ray", section_name, "ss_network", "quic")
-			uci:set("v2ray", section_name, "ss_quic_header_type", header_type)
-			uci:set("v2ray", section_name, "ss_quic_key", path)
-
-			if next(hosts) then
-				uci:set("v2ray", section_name, "ss_quic_security", hosts[1])
-
-				if tls == "tls" then
-					uci:set("v2ray", section_name, "ss_tls_server_name", hosts[1])
-				end
-			end
+		end
+		if not found then
+			table.insert(outbounds, sid)
 		end
 	end
+	uci:set_list("v2ray", "main", "outbounds", outbounds)
 
 	local success = uci:save("v2ray")
 
@@ -294,4 +246,181 @@ function import_outbound()
 	http.write_json({
 		success = true
 	})
+end
+
+function import_vmess_outbound(section_name, obj)
+	local tls = obj["tls"] or ""
+	uci:set("v2ray", section_name, "s_vmess_address", obj["add"] or "0.0.0.0")
+	uci:set("v2ray", section_name, "s_vmess_port", obj["port"] or "0")
+	uci:set("v2ray", section_name, "s_vmess_user_id", obj["id"] or "")
+	uci:set("v2ray", section_name, "s_vmess_user_alter_id", obj["aid"] or "0")
+	uci:set("v2ray", section_name, "s_vmess_user_security", "auto")
+	uci:set("v2ray", section_name, "ss_security", tls)
+
+	local network = obj["net"] or ""
+	local header_type = obj["type"] or ""
+	local path = obj["path"] or ""
+	local hosts = {}
+
+	for h in string.gmatch(obj["host"] or "", "([^,%s]+),?") do
+		hosts[#hosts+1] = h
+	end
+
+	apply_network_settings(section_name, network, header_type, path, hosts, tls)
+end
+
+function import_vless_outbound(section_name, obj)
+	local security = obj["tls"] or obj["security"] or ""
+	uci:set("v2ray", section_name, "s_vless_address", obj["add"] or "0.0.0.0")
+	uci:set("v2ray", section_name, "s_vless_port", obj["port"] or "0")
+	uci:set("v2ray", section_name, "s_vless_user_id", obj["id"] or "")
+	uci:set("v2ray", section_name, "s_vless_user_security", "auto")
+	
+	if security == "tls" then
+		uci:set("v2ray", section_name, "ss_security", "tls")
+	elseif security == "reality" then
+		uci:set("v2ray", section_name, "ss_security", "reality")
+	elseif security == "xtls" then
+		uci:set("v2ray", section_name, "ss_security", "xtls")
+	end
+	
+	if obj["sni"] then
+		if security == "tls" then
+			uci:set("v2ray", section_name, "ss_tls_server_name", obj["sni"])
+		elseif security == "reality" then
+			uci:set("v2ray", section_name, "ss_reality_server_name", obj["sni"])
+		elseif security == "xtls" then
+			uci:set("v2ray", section_name, "ss_xtls_server_name", obj["sni"])
+		end
+	end
+	
+	if obj["flow"] then
+		uci:set("v2ray", section_name, "s_vless_flow", obj["flow"])
+	end
+	
+	if obj["publicKey"] then
+		uci:set("v2ray", section_name, "ss_reality_public_key", obj["publicKey"])
+	end
+	
+	if obj["shortId"] then
+		uci:set("v2ray", section_name, "ss_reality_short_id", obj["shortId"])
+	end
+	
+	if obj["spiderX"] then
+		uci:set("v2ray", section_name, "ss_reality_spider_x", obj["spiderX"])
+	end
+
+	local network = obj["net"] or "tcp"
+	local path = obj["path"] or ""
+	local hosts = {}
+	if obj["host"] then
+		for h in string.gmatch(obj["host"], "([^,%s]+),?") do
+			hosts[#hosts+1] = h
+		end
+	end
+	
+	apply_network_settings(section_name, network, "", path, hosts, security)
+end
+
+function import_trojan_outbound(section_name, obj)
+	uci:set("v2ray", section_name, "s_trojan_address", obj["add"] or "0.0.0.0")
+	uci:set("v2ray", section_name, "s_trojan_port", obj["port"] or "0")
+	uci:set("v2ray", section_name, "s_trojan_password", obj["password"] or "")
+	uci:set("v2ray", section_name, "ss_security", "tls")
+	
+	if obj["sni"] then
+		uci:set("v2ray", section_name, "ss_tls_server_name", obj["sni"])
+	end
+	
+	if obj["allowInsecure"] == "1" or obj["allowInsecure"] == true then
+		uci:set("v2ray", section_name, "ss_tls_allow_insecure", "1")
+	end
+	
+	if obj["alpn"] then
+		uci:set("v2ray", section_name, "ss_tls_alpn", obj["alpn"])
+	end
+	
+	local network = obj["net"] or "tcp"
+	local path = obj["path"] or ""
+	local hosts = {}
+	if obj["host"] then
+		for h in string.gmatch(obj["host"], "([^,%s]+),?") do
+			hosts[#hosts+1] = h
+		end
+	end
+	
+	apply_network_settings(section_name, network, "", path, hosts, "tls")
+end
+
+function import_shadowsocks_outbound(section_name, obj)
+	uci:set("v2ray", section_name, "s_shadowsocks_address", obj["add"] or "0.0.0.0")
+	uci:set("v2ray", section_name, "s_shadowsocks_port", obj["port"] or "0")
+	uci:set("v2ray", section_name, "s_shadowsocks_password", obj["password"] or "")
+	uci:set("v2ray", section_name, "s_shadowsocks_method", obj["method"] or "")
+end
+
+function apply_network_settings(section_name, network, header_type, path, hosts, security)
+	if network == "tcp" then
+		uci:set("v2ray", section_name, "ss_network", "tcp")
+		if header_type and header_type ~= "" then
+			uci:set("v2ray", section_name, "ss_tcp_header_type", header_type)
+			if header_type == "http" and next(hosts) then
+				local host_header = string.format("Host=%s", hosts[1])
+				uci:set_list("v2ray", section_name, "ss_tcp_header_request_headers", host_header)
+			end
+		end
+		if (security == "tls" or security == "reality") and next(hosts) then
+			if security == "tls" then
+				uci:set("v2ray", section_name, "ss_tls_server_name", hosts[1])
+			elseif security == "reality" then
+				uci:set("v2ray", section_name, "ss_reality_server_name", hosts[1])
+			end
+		end
+	elseif network == "kcp" or network == "mkcp" then
+		uci:set("v2ray", section_name, "ss_network", "kcp")
+		if header_type then
+			uci:set("v2ray", section_name, "ss_kcp_header_type", header_type)
+		end
+	elseif network == "ws" then
+		uci:set("v2ray", section_name, "ss_network", "ws")
+		if path and path ~= "" then
+			uci:set("v2ray", section_name, "ss_websocket_path", path)
+		end
+		if next(hosts) then
+			local host_header = string.format("Host=%s", hosts[1])
+			uci:set_list("v2ray", section_name, "ss_websocket_headers", host_header)
+		end
+		if (security == "tls" or security == "reality") and next(hosts) then
+			if security == "tls" then
+				uci:set("v2ray", section_name, "ss_tls_server_name", hosts[1])
+			elseif security == "reality" then
+				uci:set("v2ray", section_name, "ss_reality_server_name", hosts[1])
+			end
+		end
+	elseif network == "http" or network == "h2" then
+		uci:set("v2ray", section_name, "ss_network", "http")
+		if path and path ~= "" then
+			uci:set("v2ray", section_name, "ss_http_path", path)
+		end
+		if next(hosts) then
+			uci:set_list("v2ray", section_name, "ss_http_host", hosts)
+			if security == "tls" then
+				uci:set("v2ray", section_name, "ss_tls_server_name", hosts[1])
+			end
+		end
+	elseif network == "quic" then
+		uci:set("v2ray", section_name, "ss_network", "quic")
+		if header_type then
+			uci:set("v2ray", section_name, "ss_quic_header_type", header_type)
+		end
+		if path then
+			uci:set("v2ray", section_name, "ss_quic_key", path)
+		end
+		if next(hosts) then
+			uci:set("v2ray", section_name, "ss_quic_security", hosts[1])
+			if security == "tls" then
+				uci:set("v2ray", section_name, "ss_tls_server_name", hosts[1])
+			end
+		end
+	end
 end

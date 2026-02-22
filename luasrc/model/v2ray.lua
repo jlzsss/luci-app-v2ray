@@ -214,11 +214,44 @@ function get_routelist_status()
 	}
 end
 
+local function urldecode(str)
+	if not str then return nil end
+	str = string.gsub(str, "+", " ")
+	str = string.gsub(str, "%%(%x%x)", function(h)
+		return string.char(tonumber(h, 16))
+	end)
+	return str
+end
+
 function parse_vmess_links(link)
 	local objs = {}
-	string.gsub(link, "vmess://[%w+=]+", function (l)
+	string.gsub(link, "vmess://[%w%+/=_%-]+", function (l)
 		local obj = vmess_to_object(l)
-		table.insert(objs, obj)
+		if obj then
+			obj.protocol = "vmess"
+			table.insert(objs, obj)
+		end
+	end)
+	string.gsub(link, "vless://[^%s\r\n]+", function (l)
+		local obj = vless_to_object(l)
+		if obj then
+			obj.protocol = "vless"
+			table.insert(objs, obj)
+		end
+	end)
+	string.gsub(link, "trojan://[^%s\r\n]+", function (l)
+		local obj = trojan_to_object(l)
+		if obj then
+			obj.protocol = "trojan"
+			table.insert(objs, obj)
+		end
+	end)
+	string.gsub(link, "ss://[^%s\r\n]+", function (l)
+		local obj = shadowsocks_to_object(l)
+		if obj then
+			obj.protocol = "shadowsocks"
+			table.insert(objs, obj)
+		end
 	end)
 
 	return objs
@@ -238,6 +271,155 @@ function vmess_to_object(link)
 	end
 
 	return json.parse(decoded)
+end
+
+function vless_to_object(link)
+	local obj = {}
+	local id, addr, port, rest
+	
+	id, addr, port, rest = string.match(link, "^vless://([^@]+)@%[([%x:]+)%]:(%d+)(.*)")
+	if not id then
+		id, addr, port, rest = string.match(link, "^vless://([^@]+)@([^:]+):(%d+)(.*)")
+	end
+	
+	if id and addr and port then
+		obj.id = urldecode(id)
+		obj.add = addr
+		obj.port = port
+		obj.ps = string.format("%s:%s", addr, port)
+		
+		local remark = string.match(rest or "", "#(.+)$")
+		if remark then
+			obj.ps = urldecode(remark)
+		end
+		
+		local params = {}
+		local query = string.match(rest or "", "%?([^#]+)")
+		if query then
+			for k, v in string.gmatch(query, "([^&=]+)=([^&]*)") do
+				params[k] = urldecode(v)
+			end
+		end
+		
+		obj.net = params.type or "tcp"
+		obj.path = params.path or ""
+		obj.host = params.host or ""
+		obj.tls = params.security or ""
+		obj.sni = params.sni or ""
+		obj.flow = params.flow or ""
+		obj.alpn = params.alpn or ""
+		obj.publicKey = params.publicKey or params.pbk or ""
+		obj.shortId = params.shortId or params.sid or ""
+		obj.spiderX = params.spiderX or params.spx or ""
+		obj.fp = params.fp or ""
+		
+		return obj
+	end
+	return nil
+end
+
+function trojan_to_object(link)
+	local obj = {}
+	local password, addr, port, rest
+	
+	password, addr, port, rest = string.match(link, "^trojan://([^@]+)@%[([%x:]+)%]:(%d+)(.*)")
+	if not password then
+		password, addr, port, rest = string.match(link, "^trojan://([^@]+)@([^:]+):(%d+)(.*)")
+	end
+	
+	if password and addr and port then
+		obj.password = urldecode(password)
+		obj.add = addr
+		obj.port = port
+		obj.ps = string.format("%s:%s", addr, port)
+		
+		local remark = string.match(rest or "", "#(.+)$")
+		if remark then
+			obj.ps = urldecode(remark)
+		end
+		
+		local params = {}
+		local query = string.match(rest or "", "%?([^#]+)")
+		if query then
+			for k, v in string.gmatch(query, "([^&=]+)=([^&]*)") do
+				params[k] = urldecode(v)
+			end
+		end
+		
+		obj.sni = params.sni or ""
+		obj.allowInsecure = params.allowInsecure or "0"
+		obj.alpn = params.alpn or ""
+		obj.net = params.type or "tcp"
+		obj.path = params.path or ""
+		obj.host = params.host or ""
+		
+		return obj
+	end
+	return nil
+end
+
+function shadowsocks_to_object(link)
+	local obj = {}
+	
+	local encoded, addr, port, rest
+	
+	encoded, addr, port, rest = string.match(link, "^ss://([^@]+)@%[([%x:]+)%]:(%d+)(.*)")
+	if not encoded then
+		encoded, addr, port, rest = string.match(link, "^ss://([^@]+)@([^:]+):(%d+)(.*)")
+	end
+	
+	if encoded and addr and port then
+		local remark = string.match(rest or "", "#(.+)$")
+		local decoded = nixio.bin.b64decode(encoded)
+		if decoded then
+			local method, password = string.match(decoded, "^([^:]+):(.*)")
+			if method and password then
+				obj.method = method
+				obj.password = password
+				obj.add = addr
+				obj.port = port
+				obj.ps = remark and urldecode(remark) or string.format("%s:%s", addr, port)
+				return obj
+			end
+		end
+	end
+	
+	local main_part, remark = string.match(link, "^ss://([^#]+)#?(.*)$")
+	if main_part then
+		main_part = string.match(main_part, "^(%S+)")
+		if main_part then
+			local decoded = nixio.bin.b64decode(main_part)
+			if decoded then
+				local method, password, saddr, sport = string.match(decoded, "^([^:]+):([^@]+)@%[([%x:]+)%]:(%d+)")
+				if not method then
+					method, password, saddr, sport = string.match(decoded, "^([^:]+):([^@]+)@([^:]+):(%d+)")
+				end
+				if method and password and saddr and sport then
+					obj.method = method
+					obj.password = password
+					obj.add = saddr
+					obj.port = sport
+					obj.ps = remark and #remark > 0 and urldecode(remark) or string.format("%s:%s", saddr, sport)
+					return obj
+				end
+			end
+			
+			local method, password, saddr, sport = string.match(main_part, "^([^:]+):([^@]+)@%[([%x:]+)%]:(%d+)")
+			if not method then
+				method, password, saddr, sport = string.match(main_part, "^([^:]+):([^@]+)@([^:]+):(%d+)")
+			end
+			if method and password and saddr and sport then
+				obj.method = method
+				obj.password = password
+				obj.add = saddr
+				obj.port = sport
+				obj.ps = remark and #remark > 0 and urldecode(remark) or string.format("%s:%s", saddr, sport)
+				return obj
+			end
+		end
+	end
+	
+	return nil
 end
 
 function textarea_parse(self, section, novld)

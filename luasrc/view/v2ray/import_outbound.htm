@@ -39,12 +39,15 @@ local dsp = require "luci.dispatcher"
 <div class="cbi-section">
 	<div class="cbi-section-descr">
 		<input type="button" class="cbi-button" value="<%:Import%>" onclick="return show_import_modal(this);" />
-		<span style="margin-left: 5px;"><%=translatef("Allowed link format: <code>%s</code>", "vmess://xxxxx")%></span>
+		<span style="margin-left: 5px;"><%=translatef("Allowed link formats: <code>%s</code>", "vmess://, vless://, trojan://, ss://")%></span>
 	</div>
 </div>
 <div id="_import-modal" class="_import-modal" style="display: none;">
 	<div class="_import-modal__main">
-		<h4><%:Import multiple vmess:// links at once. One link per line.%></h4>
+		<h4><%:Import multiple links at once. One link per line.%></h4>
+		<p style="font-size: 12px; margin: 10px 0; color: #666;">
+			Supported formats: vmess://, vless://, trojan://, ss://
+		</p>
 		<textarea id="_import-modal__input" rows="10"></textarea>
 	</div>
 	<div class="_import-modal__footer">
@@ -70,7 +73,17 @@ local dsp = require "luci.dispatcher"
 
 		if (!link) return;
 
-		if (!/^(vmess:\/\/[\w+=]+\s*)+$/.test(link)) {
+		var hasValidLink = false;
+		var lines = link.split(/\r?\n/);
+		for (var i = 0; i < lines.length; i++) {
+			var l = lines[i].trim();
+			if (l && (l.startsWith('vmess://') || l.startsWith('vless://') || l.startsWith('trojan://') || l.startsWith('ss://'))) {
+				hasValidLink = true;
+				break;
+			}
+		}
+
+		if (!hasValidLink) {
 			alert('<%:Unsupported Link%>');
 			return;
 		}
