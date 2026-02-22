@@ -2,6 +2,8 @@
 -- Licensed to the public under the MIT License.
 
 local dsp = require "luci.dispatcher"
+local http = require "luci.http"
+local util = require "luci.util"
 
 local m, s, o
 
@@ -16,10 +18,32 @@ s.extedit = dsp.build_url("admin/services/v2ray/inbounds/%s")
 s.create = function (...)
 	local sid = TypedSection.create(...)
 	if sid then
+		local inbounds = m.uci:get_list("v2ray", "main", "inbounds") or {}
+		if not util.contains(inbounds, sid) then
+			inbounds[#inbounds + 1] = sid
+			m.uci:set_list("v2ray", "main", "inbounds", inbounds)
+		end
 		m.uci:save("v2ray")
-		luci.http.redirect(s.extedit % sid)
+		http.redirect(s.extedit % sid)
 		return
 	end
+end
+
+s.remove = function (self, sid)
+	local inbounds = m.uci:get_list("v2ray", "main", "inbounds") or {}
+	local new_inbounds = {}
+	for _, v in ipairs(inbounds) do
+		if v ~= sid then
+			new_inbounds[#new_inbounds + 1] = v
+		end
+	end
+	TypedSection.remove(self, sid)
+	if #new_inbounds > 0 then
+		m.uci:set_list("v2ray", "main", "inbounds", new_inbounds)
+	else
+		m.uci:delete("v2ray", "main", "inbounds")
+	end
+	m.uci:save("v2ray")
 end
 
 o = s:option(DummyValue, "alias", translate("Alias"))
