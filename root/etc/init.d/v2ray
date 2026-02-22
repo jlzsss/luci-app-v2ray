@@ -164,7 +164,6 @@ append_server_address() {
 v2ray_section_validate() {
 	uci_validate_section "$NAME" "v2ray" "$1" \
 		'enabled:bool:0' \
-		'core_type:or("v2ray", "xray")' \
 		'firewall_backend:or("auto", "iptables", "nftables"):auto' \
 		'v2ray_file:string' \
 		'asset_location:directory' \

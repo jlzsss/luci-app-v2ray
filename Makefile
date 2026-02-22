@@ -12,7 +12,7 @@ PKG_RELEASE:=1
 PKG_LICENSE:=MIT
 PKG_MAINTAINER:=Xingwang Liao <kuoruan@gmail.com>
 
-LUCI_TITLE:=LuCI support for V2Ray/XRay (v24.10+)
+LUCI_TITLE:=LuCI support for V2Ray (v24.10+)
 LUCI_DEPENDS:=+jshn +luci-lib-jsonc +ip +ipset +iptables +iptables-mod-tproxy \
 	+resolveip +dnsmasq-full +luci-compat
 LUCI_PKGARCH:=all

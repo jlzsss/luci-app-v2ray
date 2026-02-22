@@ -48,18 +48,13 @@ o.write = function ()
 	sys.call("/etc/init.d/v2ray reload 2>/dev/null")
 end
 
-o = s:option(ListValue, "core_type", translate("Core Type"), translate("Choose V2Ray or XRay core"))
-o:value("v2ray", "V2Ray")
-o:value("xray", "XRay")
-o.default = "v2ray"
-
 o = s:option(ListValue, "firewall_backend", translate("Firewall Backend"), translate("Choose firewall backend for transparent proxy"))
 o:value("auto", translate("Auto (detect)"))
 o:value("iptables", "iptables")
 o:value("nftables", "nftables")
 o.default = "auto"
 
-o = s:option(Value, "v2ray_file", translate("V2Ray/XRay file"), "<em>%s</em>" % translate("Collecting data..."))
+o = s:option(Value, "v2ray_file", translate("V2Ray file"), "<em>%s</em>" % translate("Collecting data..."))
 o.datatype = "file"
 o.placeholder = "/usr/bin/v2ray"
 o.rmempty = false

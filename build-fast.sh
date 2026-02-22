@@ -52,7 +52,7 @@ Section: luci
 Priority: optional
 Maintainer: Xingwang Liao <kuoruan@gmail.com>
 Architecture: all
-Description: LuCI support for V2Ray/Xray
+Description: LuCI support for V2Ray
 EOF
 
 # 创建 postinst 脚本（来自 Makefile）
