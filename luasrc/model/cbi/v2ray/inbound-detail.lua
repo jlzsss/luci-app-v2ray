@@ -328,7 +328,7 @@ o:value("encipherment")
 o:value("verify")
 o:value("issue")
 
-o = s:option(Value, "ss_tls_cert_fiile", "%s - %s" % { "TLS", translate("Certificate file") })
+o = s:option(Value, "ss_tls_cert_file", "%s - %s" % { "TLS", translate("Certificate file") })
 o:depends("ss_security", "tls")
 
 o = s:option(Value, "ss_tls_key_file", "%s - %s" % { "TLS", translate("Key file") })

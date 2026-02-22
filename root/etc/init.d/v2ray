@@ -324,7 +324,7 @@ inbound_section_validate() {
 		'ss_tls_allow_insecure_ciphers:bool:0' \
 		'ss_tls_disable_system_root:bool:0' \
 		'ss_tls_cert_usage:or("encipherment", "verify", "issue")' \
-		'ss_tls_cert_fiile:string' \
+		'ss_tls_cert_file:string' \
 		'ss_tls_key_file:string' \
 		'ss_tcp_header_type:or("none", "http")' \
 		'ss_tcp_header_request_version:string' \
@@ -430,7 +430,7 @@ outbound_section_validate() {
 		'ss_tls_allow_insecure_ciphers:bool:0' \
 		'ss_tls_disable_system_root:bool:0' \
 		'ss_tls_cert_usage:or("encipherment", "verify", "issue")' \
-		'ss_tls_cert_fiile:string' \
+		'ss_tls_cert_file:string' \
 		'ss_tls_key_file:string' \
 		'ss_tcp_header_type:or("none", "http")' \
 		'ss_tcp_header_request_version:string' \
@@ -1672,9 +1672,9 @@ add_inbound_setting() {
 		json_add_boolean "disableSystemRoot" "$ss_tls_disable_system_root"
 
 		json_add_array "certificates"
-		if [ -n "$ss_tls_cert_fiile" ] ; then
+		if [ -n "$ss_tls_cert_file" ] ; then
 			json_add_object ""
-			json_add_string "certificateFile" "$ss_tls_cert_fiile"
+			json_add_string "certificateFile" "$ss_tls_cert_file"
 			json_add_string "keyFile" "$ss_tls_key_file"
 			test -n "$ss_tls_cert_usage" && \
 				json_add_string "usage" "$ss_tls_cert_usage"
@@ -2221,9 +2221,9 @@ add_outbound_setting() {
 		json_add_boolean "disableSystemRoot" "$ss_tls_disable_system_root"
 
 		json_add_array "certificates"
-		if [ -n "$ss_tls_cert_fiile" ] ; then
+		if [ -n "$ss_tls_cert_file" ] ; then
 			json_add_object ""
-			json_add_string "certificateFile" "$ss_tls_cert_fiile"
+			json_add_string "certificateFile" "$ss_tls_cert_file"
 			json_add_string "keyFile" "$ss_tls_key_file"
 			test -n "$ss_tls_cert_usage" && \
 				json_add_string "usage" "$ss_tls_cert_usage"
